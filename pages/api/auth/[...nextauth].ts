@@ -9,8 +9,24 @@ import bcrypt from "bcrypt"
 
 import prisma from "@/libs/prismadb"
 
+// Custom adapter to handle username generation for OAuth users
+const customAdapter = {
+  ...PrismaAdapter(prisma),
+  async createUser(user: any) {
+    if (!user.username && user.email) {
+      const baseUsername = user.email.split('@')[0];
+      const randomSuffix = Math.floor(Math.random() * 10000);
+      user.username = `${baseUsername}${randomSuffix}`;
+    }
+
+    return prisma.user.create({
+      data: user,
+    });
+  },
+};
+
 export const authOptions: AuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  adapter: customAdapter,
   providers: [
     GithubProvider({
 			clientId: process.env.GITHUB_ID as string,
